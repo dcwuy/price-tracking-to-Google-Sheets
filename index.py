@@ -8,7 +8,6 @@ from bs4 import BeautifulSoup
 import http.client
 import bimatquocgia
 import pytz
-# from amzpy import AmazonScraper
 import json
 
 # === CONFIG ===
