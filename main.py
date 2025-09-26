@@ -61,6 +61,15 @@ def get_wayfair(target):
         return float(price_tag.get_text(strip=True)[1:])
     return None
 
+def get_amazon_backup(target):
+    soup = get_soup_scrapingant(target)
+    price_tag = soup.find(attrs={"id": "corePriceDisplay_desktop_feature_div"})
+    if price_tag:
+        price_tag_splitted = price_tag.get_text(strip=True).split()
+        price_tag_splitted_second_time = price_tag_splitted[0][1:].split("$")
+        return float(price_tag_splitted_second_time[0].replace(",", ""))
+    return None
+
 def get_amazon(target, location = AMAZON_ZIP_CODE):
     try:
         # Extract ASIN
@@ -101,15 +110,6 @@ def get_amazon(target, location = AMAZON_ZIP_CODE):
 
     except Exception:
         return get_amazon_backup(target)
-
-def get_amazon_backup(target):
-    soup = get_soup_scrapingant(target)
-    price_tag = soup.find(attrs={"id": "corePriceDisplay_desktop_feature_div"})
-    if price_tag:
-        price_tag_splitted = price_tag.get_text(strip=True).split()
-        price_tag_splitted_second_time = price_tag_splitted[0][1:].split("$")
-        return float(price_tag_splitted_second_time[0].replace(",", ""))
-    return None
 
 def fetch_price(target):
     retries = 5
