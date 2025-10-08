@@ -54,8 +54,45 @@ def get_soup_scrapingant(target):
 
     return BeautifulSoup(html, "html.parser") # Translate to soup
 
+def get_soup_hasdata(target):
+    conn = http.client.HTTPSConnection("api.hasdata.com")
+
+    payload = "{\"url\":\"" + target + "\",\"proxyType\":\"datacenter\",\"proxyCountry\":\"US\",\"blockResources\":true,\"blockAds\":false,\"blockUrls\":[],\"jsScenario\":[],\"screenshot\":false,\"jsRendering\":false,\"extractEmails\":false,\"includeOnlyTags\":[],\"excludeTags\":[],\"outputFormat\":[\"html\"]}"
+
+    headers = {
+        'x-api-key': HASDATA_API_KEY,
+        'Content-Type': "application/json"
+    }
+
+    conn.request("POST", "/scrape/web", payload, headers)
+
+    res = conn.getresponse()
+    data = res.read()
+    html = data.decode("utf-8")
+
+    return BeautifulSoup(html, "html.parser")
+
+def get_soup_WebScrapingDotAi(target):
+    params = {
+        "api_key": WebScrapingDotAi_API_KEY,
+        "url": target,
+        "timeout": "20000",
+        "js": "false",
+    }
+    response = requests.get('https://api.webscraping.ai/html', params=params)
+    html = response.text
+
+    return BeautifulSoup(html, "html.parser")
+
+def get_soup_scrapingrobot(target):
+    url = "https://api.scrapingrobot.com/?token=" + SCRAPINGROBOT_API_KEY + "&url=" + target
+    response = requests.get(url)
+    html = response.json()['result']
+
+    return BeautifulSoup(html, "html.parser")
+
 def get_wayfair(target):
-    soup = get_soup_scrapingant(target)
+    soup = get_soup_scrapingrobot(target)
     price_tag = soup.find(attrs={"data-name-id": "PriceDisplay"})
     if price_tag:
         return float(price_tag.get_text(strip=True)[1:])
