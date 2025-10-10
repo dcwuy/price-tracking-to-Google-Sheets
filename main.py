@@ -215,7 +215,7 @@ def get_amazon(target, location = AMAZON_ZIP_CODE):
         return get_amazon_backup(target)
 
 def get_amazon_backup(target):
-    soup = get_soup_scrapingant(target)
+    soup = get_soup(target)
     price_tag = soup.find(attrs={"id": "corePriceDisplay_desktop_feature_div"})
     if price_tag:
         price_tag_splitted = price_tag.get_text(strip=True).split()
