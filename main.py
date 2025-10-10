@@ -273,8 +273,10 @@ if __name__ == "__main__":
         results.append([timestamp, url, price if price is not None else "N/A"])
         time.sleep(1)
 
-    try:
-        log_sheet.append_rows(results, value_input_option="USER_ENTERED")
-        print("✅ Logged successfully")
-    except Exception as e:
-        print("❌ Logging failed:", e)
+    for i in range(5):
+        try:
+            log_sheet.append_rows(results, value_input_option="USER_ENTERED")
+            print("✅ Logged successfully")
+            break
+        except Exception as e:
+            print("❌ Logging failed:", e)
