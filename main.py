@@ -267,7 +267,7 @@ if __name__ == "__main__":
 
     results = []
 
-    with ThreadPoolExecutor(max_workers=4) as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         # future_to_url = {executor.submit(fetch_price, url): url for url in urls}
         future_to_url = {}
         for i in urls:
