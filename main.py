@@ -9,6 +9,7 @@ import http.client
 import bimatquocgia
 import pytz
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # === CONFIG ===
 SHEET_URL = bimatquocgia.SHEET_URL
@@ -94,10 +95,9 @@ def get_soup(target):
                 return get_soup_WebScrapingDotAi(target)
 
 def get_soup_scrapingant(target):
-    print("# Fetching Scraping Ant API")
     # Get html using ScrapingAnt
     conn = http.client.HTTPSConnection("api.scrapingant.com")
-    conn.request("GET", "/v2/general?url=" + target + "&x-api-key=" + SCRAPINGANT_API_KEY + "&proxy_country=US&return_page_source=true")
+    conn.request("GET", "/v2/general?url=" + target + "&x-api-key=" + SCRAPINGANT_API_KEY + "&return_page_source=true")
 
     res = conn.getresponse()
     data = res.read()
@@ -105,13 +105,14 @@ def get_soup_scrapingant(target):
 
     fatalError(res.status, no_retry = [400, 403, 500], indexAPI = 0)
 
+    print("# Fetched Scraping Ant:       ", end = '')
+
     return BeautifulSoup(html, "html.parser") # Translate to soup
 
 def get_soup_hasdata(target):
-    print("# Fetching HasData")
     conn = http.client.HTTPSConnection("api.hasdata.com")
 
-    payload = "{\"url\":\"" + target + "\",\"proxyType\":\"datacenter\",\"proxyCountry\":\"US\",\"blockResources\":true,\"blockAds\":false,\"blockUrls\":[],\"jsScenario\":[],\"screenshot\":false,\"jsRendering\":false,\"extractEmails\":false,\"includeOnlyTags\":[],\"excludeTags\":[],\"outputFormat\":[\"html\"]}"
+    payload = "{\"url\":\"" + target + "\",\"proxyType\":\"datacenter\",\"blockResources\":true,\"blockAds\":false,\"blockUrls\":[],\"jsScenario\":[],\"screenshot\":false,\"jsRendering\":false,\"extractEmails\":false,\"includeOnlyTags\":[],\"excludeTags\":[],\"outputFormat\":[\"html\"]}"
 
     headers = {
         'x-api-key': HASDATA_API_KEY,
@@ -125,11 +126,10 @@ def get_soup_hasdata(target):
     html = data.decode("utf-8")
 
     fatalError(res.status, no_retry = [401, 403, 500], indexAPI = 2)
-
+    print("# Fetched HasData:            ", end = '')
     return BeautifulSoup(html, "html.parser")
 
 def get_soup_WebScrapingDotAi(target):
-    print("# Fetching Web Scaping Dot Ai")
     params = {
         "api_key": WebScrapingDotAi_API_KEY,
         "url": target,
@@ -140,15 +140,14 @@ def get_soup_WebScrapingDotAi(target):
     html = response.text
 
     fatalError(response.status_code, no_retry = [400, 402, 403], indexAPI = 3)
-
+    print("# Fetched Web Scaping Dot Ai: ", end = '')
     return BeautifulSoup(html, "html.parser")
 
 def get_soup_scrapingrobot(target):
-    print("# Fetching Scraping Robot")
     url = "https://api.scrapingrobot.com/?token=" + SCRAPINGROBOT_API_KEY + "&url=" + target
     response = requests.get(url)
     data = response.json()
-
+    print("# Fetched Scraping Robot:     ", end = '')
     if 'result' in data:
         html = data['result']
         return BeautifulSoup(html, "html.parser")
@@ -163,7 +162,6 @@ def get_soup_scrapingrobot(target):
                 "Internal server error"
             ],
             indexAPI = 1)
-
     return BeautifulSoup("<html></html>", "html.parser")
 
 def get_wayfair(target):
@@ -243,11 +241,13 @@ def fetch_price(target):
             print("URL Error!")
             return None
         if price:
+            print(f"SUCCESS | Retries left: {retries} | {target} -> {price}")
+            time.sleep(1)
             return price
 
         badAPI[alternateAPI] -= 1
         # If failed, retry
-        print("Extracting failed, retries remaining", retries)
+        print(f"FAILED  | Retries left: {retries} | {target}")
         time.sleep(3)
     return None
 
@@ -267,11 +267,21 @@ if __name__ == "__main__":
 
     results = []
 
-    for url in urls:
-        price = fetch_price(url)
-        print(f"{url} -> {price}")
-        results.append([timestamp, url, price if price is not None else "N/A"])
-        time.sleep(1)
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        # future_to_url = {executor.submit(fetch_price, url): url for url in urls}
+        future_to_url = {}
+        for i in urls:
+            f = executor.submit(fetch_price, i)
+            future_to_url[f] = i
+            time.sleep(1)
+
+        for future in as_completed(future_to_url):
+            url = future_to_url[future]
+            try:
+                price = future.result()
+            except Exception as e:
+                price = f"Error: {e}"
+            results.append([timestamp, url, price])
 
     for i in range(5):
         try:
