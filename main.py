@@ -233,7 +233,7 @@ def get_amazon_backup(target):
     return None
 
 def fetch_price(target):
-    retries = 5
+    retries = 6
     while retries:
         retries -= 1
 
