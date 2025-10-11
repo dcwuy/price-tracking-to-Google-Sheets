@@ -18,8 +18,9 @@ SCRAPINGANT_API_KEY = bimatquocgia.SCRAPINGANT
 OXYLABS_ACCOUNT = bimatquocgia.OXYLABS_ACCOUNT
 OXYLABS_PASSWORD = bimatquocgia.OXYLABS_PASSWORD
 HASDATA_API_KEY = bimatquocgia.HASDATA
-WebScrapingDotAi_API_KEY = bimatquocgia.WebScrapingDotAi
+WebScrapingDotAi_API_KEY = bimatquocgia.WEBSCRAPINGDOTAI
 SCRAPINGROBOT_API_KEY = bimatquocgia.SCRAPINGROBOT
+WebScrapingApiDtCm_API_KEY = bimatquocgia.WEBSCAPINGAPIDOTCOM
 TIMEZONE = bimatquocgia.TIMEZONE
 AMAZON_ZIP_CODE = bimatquocgia.ZIP_CODE
 USER_AGENTS = [
@@ -48,8 +49,8 @@ except gspread.exceptions.WorksheetNotFound:
 
 # === SCRAPERS ===
 alternateAPI = -1
-badAPI = [True, True, True, True]
-errorAPI = [10, 10, 5, 5]
+badAPI = [True, True, True, True, True]
+errorAPI = [15, 15, 5, 5, 15]
 
 def fatalError(status, no_retry, indexAPI):
     global badAPI
@@ -61,12 +62,6 @@ def fatalError(status, no_retry, indexAPI):
             errorAPI[indexAPI] = 0
             break
 
-def sumArr(arr):
-    sumA = 0
-    for i in arr:
-        sumA += i
-    return sumA
-
 def get_soup(target):
     global alternateAPI
     global badAPI
@@ -74,25 +69,29 @@ def get_soup(target):
     run = True
     while 1:
         alternateAPI += 1
-        if sumArr(errorAPI) == 0:
+        if sum(errorAPI) == 0:
             if(badAPI[0]):
                 errorAPI[0] = 15
             if(badAPI[1]):
                 errorAPI[1] = 15
             if(badAPI[2]):
-                errorAPI[2] = 3
-            if(badAPI[3]):
-               errorAPI[3] = 4
+                errorAPI[2] = 5
+            if badAPI[3] == 0:
+                errorAPI[3] = 5
+            if badAPI[4] == 0:
+                errorAPI[4] = 15
         if alternateAPI == 0 and errorAPI[0]:
             return get_soup_scrapingant(target)
         if alternateAPI == 1 and errorAPI[1]:
             return get_soup_scrapingrobot(target)
         if alternateAPI == 2 and errorAPI[2]:
             return get_soup_hasdata(target)
-        if alternateAPI == 3:
+        if alternateAPI == 3 and errorAPI[3]:
+            return get_soup_WebScrapingDotAi(target)
+        if alternateAPI == 4:
             alternateAPI = -1
-            if errorAPI[3]:
-                return get_soup_WebScrapingDotAi(target)
+            if errorAPI[4]:
+                return get_soup_WebScrapingApiDtCm(target)
 
 def get_soup_scrapingant(target):
     # Get html using ScrapingAnt
@@ -105,7 +104,7 @@ def get_soup_scrapingant(target):
 
     fatalError(res.status, no_retry = [400, 403, 500], indexAPI = 0)
 
-    print("# Fetched Scraping Ant:       ", end = '')
+    print("# Scraping Ant:       ", end = '')
 
     return BeautifulSoup(html, "html.parser") # Translate to soup
 
@@ -126,7 +125,19 @@ def get_soup_hasdata(target):
     html = data.decode("utf-8")
 
     fatalError(res.status, no_retry = [401, 403, 500], indexAPI = 2)
-    print("# Fetched HasData:            ", end = '')
+    print("# HasData:            ", end = '')
+    return BeautifulSoup(html, "html.parser")
+
+def get_soup_WebScrapingApiDtCm(target):
+    conn = http.client.HTTPSConnection("api.webscrapingapi.com")
+    conn.request("GET", "/v2?api_key=pItvmglV1oldQDWM38h9AfIYSoAEy0qf&timeout=20000&url=" + target)
+
+    res = conn.getresponse()
+    data = res.read()
+    html = data.decode("utf-8")
+
+    fatalError(res.status, no_retry = [401, 403, 500, 503], indexAPI = 4)
+    print("# WebScrapingApiDtCm: ", end = '')
     return BeautifulSoup(html, "html.parser")
 
 def get_soup_WebScrapingDotAi(target):
@@ -140,14 +151,14 @@ def get_soup_WebScrapingDotAi(target):
     html = response.text
 
     fatalError(response.status_code, no_retry = [400, 402, 403], indexAPI = 3)
-    print("# Fetched Web Scaping Dot Ai: ", end = '')
+    print("# WebScraping Dot Ai: ", end = '')
     return BeautifulSoup(html, "html.parser")
 
 def get_soup_scrapingrobot(target):
     url = "https://api.scrapingrobot.com/?token=" + SCRAPINGROBOT_API_KEY + "&url=" + target
     response = requests.get(url)
     data = response.json()
-    print("# Fetched Scraping Robot:     ", end = '')
+    print("# Scraping Robot:     ", end = '')
     if 'result' in data:
         html = data['result']
         return BeautifulSoup(html, "html.parser")
@@ -222,7 +233,7 @@ def get_amazon_backup(target):
     return None
 
 def fetch_price(target):
-    retries = 6
+    retries = 5
     while retries:
         retries -= 1
 
@@ -268,11 +279,10 @@ if __name__ == "__main__":
     results = []
 
     with ThreadPoolExecutor(max_workers=2) as executor:
-        # future_to_url = {executor.submit(fetch_price, url): url for url in urls}
         future_to_url = {}
-        for i in urls:
-            f = executor.submit(fetch_price, i)
-            future_to_url[f] = i
+        for url in urls:
+            future = executor.submit(fetch_price, url)
+            future_to_url[future] = url
             time.sleep(1)
 
         for future in as_completed(future_to_url):
