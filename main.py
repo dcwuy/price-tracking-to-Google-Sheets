@@ -177,6 +177,9 @@ def get_soup_scrapingrobot(target):
 
 def get_wayfair(target):
     soup = get_soup(target)
+    price_tag = soup.find(attrs={"style": "--_6o3atzba:var(--_1pwc14f7k);--_6o3atzbw:1"})
+    if price_tag:
+        return float(price_tag.get_text(strip=True)[1:])
     price_tag = soup.find(attrs={"data-name-id": "PriceDisplay"})
     if price_tag:
         return float(price_tag.get_text(strip=True)[1:])
@@ -233,7 +236,7 @@ def get_amazon_backup(target):
     return None
 
 def fetch_price(target):
-    retries = 6
+    retries = 5
     while retries:
         retries -= 1
 
