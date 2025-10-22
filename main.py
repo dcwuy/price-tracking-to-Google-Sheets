@@ -75,8 +75,6 @@ def get_soup(target):
                 errorAPI[2] = 5
             if badAPI[3] == 0:
                 errorAPI[3] = 5
-            if badAPI[4] == 0:
-                errorAPI[4] = 15
         if alternateAPI == 0 and errorAPI[0]:
             return get_soup_scrapingant(target)
         if alternateAPI == 1 and errorAPI[1]:
