@@ -15,12 +15,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 SHEET_URL = bimatquocgia.SHEET_URL
 GOOGLE_SERVICE_ACCOUNT_FILE = bimatquocgia.SERVICE_ACCOUNT
 SCRAPINGANT_API_KEY = bimatquocgia.SCRAPINGANT
-OXYLABS_ACCOUNT = bimatquocgia.OXYLABS_ACCOUNT
-OXYLABS_PASSWORD = bimatquocgia.OXYLABS_PASSWORD
 HASDATA_API_KEY = bimatquocgia.HASDATA
 WebScrapingDotAi_API_KEY = bimatquocgia.WEBSCRAPINGDOTAI
 SCRAPINGROBOT_API_KEY = bimatquocgia.SCRAPINGROBOT
-WebScrapingApiDtCm_API_KEY = bimatquocgia.WEBSCRAPINGAPIDOTCOM
 TIMEZONE = bimatquocgia.TIMEZONE
 AMAZON_ZIP_CODE = bimatquocgia.ZIP_CODE
 USER_AGENTS = [
@@ -49,8 +46,8 @@ except gspread.exceptions.WorksheetNotFound:
 
 # === SCRAPERS ===
 alternateAPI = -1
-badAPI = [True, True, True, True, True]
-errorAPI = [15, 15, 5, 5, 15]
+badAPI = [True, True, True, True]
+errorAPI = [15, 15, 5, 5]
 
 def fatalError(status, no_retry, indexAPI):
     global badAPI
@@ -90,8 +87,6 @@ def get_soup(target):
             return get_soup_WebScrapingDotAi(target)
         if alternateAPI == 4:
             alternateAPI = -1
-            if errorAPI[4]:
-                return get_soup_WebScrapingApiDtCm(target)
 
 def get_soup_scrapingant(target):
     # Get html using ScrapingAnt
@@ -126,18 +121,6 @@ def get_soup_hasdata(target):
 
     fatalError(res.status, no_retry = [401, 403, 500], indexAPI = 2)
     print("# HasData:            ", end = '')
-    return BeautifulSoup(html, "html.parser")
-
-def get_soup_WebScrapingApiDtCm(target):
-    conn = http.client.HTTPSConnection("api.webscrapingapi.com")
-    conn.request("GET", "/v2?api_key=pItvmglV1oldQDWM38h9AfIYSoAEy0qf&timeout=20000&url=" + target)
-
-    res = conn.getresponse()
-    data = res.read()
-    html = data.decode("utf-8")
-
-    fatalError(res.status, no_retry = [401, 403, 500, 503], indexAPI = 4)
-    print("# WebScrapingApiDtCm: ", end = '')
     return BeautifulSoup(html, "html.parser")
 
 def get_soup_WebScrapingDotAi(target):
@@ -185,48 +168,7 @@ def get_wayfair(target):
         return float(price_tag.get_text(strip=True)[1:])
     return None
 
-def get_amazon(target, location = AMAZON_ZIP_CODE):
-    try:
-        # Extract ASIN
-        asin_position = target.find("/dp/")
-        if asin_position == -1:
-            return -1
-        asin = target[asin_position + 4 : asin_position + 14]
-        if "/" in asin:
-            return -1
-
-        # Build payload
-        payload = {
-            'source': 'amazon_pricing',
-            'domain': 'com',
-            'geo_location': location,
-            'query': asin,
-            'parse': True,
-        }
-
-        # Call API (add timeout to avoid hanging)
-        response = requests.post(
-            'https://realtime.oxylabs.io/v1/queries',
-            auth=(OXYLABS_ACCOUNT, OXYLABS_PASSWORD),
-            json=payload,
-            timeout=15,
-        )
-
-        response.raise_for_status()  # raise if HTTP error
-        data = response.json()
-
-        # Extract price safely
-        return (
-                    data.get("results", [{}])[0]
-                    .get("content", {})
-                    .get("pricing", [{}])[0]
-                    .get("price")
-                )
-
-    except Exception:
-        return get_amazon_backup(target)
-
-def get_amazon_backup(target):
+def get_amazon(target):
     soup = get_soup(target)
     price_tag = soup.find(attrs={"id": "corePriceDisplay_desktop_feature_div"})
     if price_tag:
