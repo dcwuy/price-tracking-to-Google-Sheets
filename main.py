@@ -44,8 +44,8 @@ except gspread.exceptions.WorksheetNotFound:
 
 # === SCRAPERS ===
 alternateAPI = -1
-badAPI = [True, True, True, True]
-errorAPI = [15, 15, 5, 5]
+badAPI = [True, True, True]
+errorAPI = [15, 15, 5]
 
 def fatalError(status, no_retry, indexAPI):
     global badAPI
@@ -77,12 +77,9 @@ def get_soup(target):
             return get_soup_scrapingant(target)
         if alternateAPI == 1 and errorAPI[1]:
             return get_soup_scrapingrobot(target)
-        if alternateAPI == 2 and errorAPI[2]:
-            return get_soup_hasdata(target)
-        if alternateAPI == 3 and errorAPI[3]:
+        if alternateAPI == 2 and errorAPI[3]:
             return get_soup_WebScrapingDotAi(target)
-        if alternateAPI == 4:
-            alternateAPI = -1
+        alternateAPI = -1
 
 def get_soup_scrapingant(target):
     # Get html using ScrapingAnt
