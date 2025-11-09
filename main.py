@@ -15,11 +15,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 SHEET_URL = bimatquocgia.SHEET_URL
 GOOGLE_SERVICE_ACCOUNT_FILE = bimatquocgia.SERVICE_ACCOUNT
 SCRAPINGANT_API_KEY = bimatquocgia.SCRAPINGANT
-HASDATA_API_KEY = bimatquocgia.HASDATA
 WebScrapingDotAi_API_KEY = bimatquocgia.WEBSCRAPINGDOTAI
 SCRAPINGROBOT_API_KEY = bimatquocgia.SCRAPINGROBOT
 TIMEZONE = bimatquocgia.TIMEZONE
-AMAZON_ZIP_CODE = bimatquocgia.ZIP_CODE
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15",
@@ -100,26 +98,6 @@ def get_soup_scrapingant(target):
     print("# Scraping Ant:       ", end = '')
 
     return BeautifulSoup(html, "html.parser") # Translate to soup
-
-def get_soup_hasdata(target):
-    conn = http.client.HTTPSConnection("api.hasdata.com")
-
-    payload = "{\"url\":\"" + target + "\",\"proxyType\":\"datacenter\",\"blockResources\":true,\"blockAds\":false,\"blockUrls\":[],\"jsScenario\":[],\"screenshot\":false,\"jsRendering\":false,\"extractEmails\":false,\"includeOnlyTags\":[],\"excludeTags\":[],\"outputFormat\":[\"html\"]}"
-
-    headers = {
-        'x-api-key': HASDATA_API_KEY,
-        'Content-Type': "application/json"
-    }
-
-    conn.request("POST", "/scrape/web", payload, headers)
-
-    res = conn.getresponse()
-    data = res.read()
-    html = data.decode("utf-8")
-
-    fatalError(res.status, no_retry = [401, 403, 500], indexAPI = 2)
-    print("# HasData:            ", end = '')
-    return BeautifulSoup(html, "html.parser")
 
 def get_soup_WebScrapingDotAi(target):
     params = {
