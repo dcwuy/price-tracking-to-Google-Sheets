@@ -15,7 +15,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 SHEET_URL = bimatquocgia.SHEET_URL
 GOOGLE_SERVICE_ACCOUNT_FILE = bimatquocgia.SERVICE_ACCOUNT
 SCRAPINGANT_API_KEY = bimatquocgia.SCRAPINGANT
-WebScrapingDotAi_API_KEY = bimatquocgia.WEBSCRAPINGDOTAI
 SCRAPINGROBOT_API_KEY = bimatquocgia.SCRAPINGROBOT
 TIMEZONE = bimatquocgia.TIMEZONE
 USER_AGENTS = [
@@ -45,14 +44,15 @@ except gspread.exceptions.WorksheetNotFound:
 # === SCRAPERS ===
 alternateAPI = -1
 badAPI = [True, True, True]
-errorAPI = [15, 15, 5]
+errorAPI = [15, 15]
+nameAPI = ["ScrpAnt", "ScrpRobot"]
 
 def fatalError(status, no_retry, indexAPI):
     global badAPI
     global errorAPI
     for i in no_retry:
         if status == i:
-            print("! Fatal Error for", indexAPI, "with", status)
+            print("! Fatal Error for", nameAPI[indexAPI], "with", status)
             badAPI[indexAPI] = False
             errorAPI[indexAPI] = 0
             break
@@ -69,16 +69,10 @@ def get_soup(target):
                 errorAPI[0] = 15
             if(badAPI[1]):
                 errorAPI[1] = 15
-            if(badAPI[2]):
-                errorAPI[2] = 5
-            if badAPI[3] == 0:
-                errorAPI[3] = 5
         if alternateAPI == 0 and errorAPI[0]:
             return get_soup_scrapingant(target)
         if alternateAPI == 1 and errorAPI[1]:
             return get_soup_scrapingrobot(target)
-        if alternateAPI == 2 and errorAPI[3]:
-            return get_soup_WebScrapingDotAi(target)
         alternateAPI = -1
 
 def get_soup_scrapingant(target):
@@ -96,19 +90,6 @@ def get_soup_scrapingant(target):
 
     return BeautifulSoup(html, "html.parser") # Translate to soup
 
-def get_soup_WebScrapingDotAi(target):
-    params = {
-        "api_key": WebScrapingDotAi_API_KEY,
-        "url": target,
-        "timeout": "20000",
-        "js": "false",
-    }
-    response = requests.get('https://api.webscraping.ai/html', params=params)
-    html = response.text
-
-    fatalError(response.status_code, no_retry = [400, 402, 403], indexAPI = 3)
-    print("# WebScraping Dot Ai: ", end = '')
-    return BeautifulSoup(html, "html.parser")
 
 def get_soup_scrapingrobot(target):
     url = "https://api.scrapingrobot.com/?token=" + SCRAPINGROBOT_API_KEY + "&url=" + target
@@ -133,7 +114,7 @@ def get_soup_scrapingrobot(target):
 
 def get_wayfair(target):
     soup = get_soup(target)
-    price_tag = soup.find(attrs={"style": "--_6o3atzba:var(--_1pwc14f7k);--_6o3atzbw:1"})
+    price_tag = soup.select_one('[style*="var(--_1pwc14f7k)"]')
     if price_tag:
         return float(price_tag.get_text(strip=True)[1:])
     price_tag = soup.find(attrs={"data-name-id": "PriceDisplay"})
@@ -201,7 +182,7 @@ if __name__ == "__main__":
         for url in urls:
             future = executor.submit(fetch_price, url)
             future_to_url[future] = url
-            time.sleep(1)
+            time.sleep(2)
 
         for future in as_completed(future_to_url):
             url = future_to_url[future]
